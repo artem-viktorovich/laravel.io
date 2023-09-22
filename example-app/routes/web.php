@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\Controller2;
 use App\Http\Controllers\MyPlaceController;
+use App\Http\Controllers\PostController;
+use App\Models\Tries;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,10 +17,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
+
     return 'aaaaaaaa';
 });
 
-Route::get('/my_page', [MyPlaceController::class, 'index']);
+Route::get('/posts', [PostController::class, 'index']);
 
 
-Route::get('/my_page2', [Controller2::class, 'index2']);
