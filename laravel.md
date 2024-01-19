@@ -300,3 +300,142 @@ class Post extends Model
     protected $table = 'posts';  
 }
 ```
+
+<h2>Модель. Реализация методов у модели</h2>
+
+Подробная <a href="https://href.kz/blog/laravel/sozdanie-modeli-i-migracii-v-laravel-8-x">информация</a>
+
+<h2>Модель. Методы чтения данных</h2>
+Метод <span style="color:red;">find(1)</span>  он ищет айдишник, который указан в скобках, и выводит нашу строку
+
+Для просмотра всех данных, делаем запись метода:
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    dd($posts);  
+}
+```
+
+Браузер выведет массив с данными:
+
+```
+Illuminate\Database\Eloquent\Collection {#304 ▼ // app/Http/Controllers/PostController.php:13
+  #items: array:2 [▼
+    0 => App\Models\Post {#306 ▼
+      #connection: "mysql"
+      #table: "posts"
+      #primaryKey: "id"
+      #keyType: "int"
+      +incrementing: true
+      #with: []
+      #withCount: []
+      +preventsLazyLoading: false
+      #perPage: 15
+      +exists: true
+      +wasRecentlyCreated: false
+      #escapeWhenCastingToString: false
+      #attributes: array:8 [▶]
+      #original: array:8 [▶]
+      #changes: []
+      #casts: []
+      #classCastCache: []
+      #attributeCastCache: []
+      #dateFormat: null
+      #appends: []
+      #dispatchesEvents: []
+      #observables: []
+      #relations: []
+      #touches: []
+      +timestamps: true
+      +usesUniqueIds: false
+      #hidden: []
+      #visible: []
+      #fillable: []
+      #guarded: array:1 [▶]
+    }
+    1 => App\Models\Post {#307 ▼
+      #connection: "mysql"
+      #table: "posts"
+      #primaryKey: "id"
+      #keyType: "int"
+      +incrementing: true
+      #with: []
+      #withCount: []
+      +preventsLazyLoading: false
+      #perPage: 15
+      +exists: true
+      +wasRecentlyCreated: false
+      #escapeWhenCastingToString: false
+      #attributes: array:8 [▶]
+      #original: array:8 [▶]
+      #changes: []
+      #casts: []
+      #classCastCache: []
+      #attributeCastCache: []
+      #dateFormat: null
+      #appends: []
+      #dispatchesEvents: []
+      #observables: []
+      #relations: []
+      #touches: []
+      +timestamps: true
+      +usesUniqueIds: false
+      #hidden: []
+      #visible: []
+      #fillable: []
+      #guarded: array:1 [▶]
+    }
+  ]
+  #escapeWhenCastingToString: false
+}
+```
+
+Illuminate\Database\Eloquent\Collection - аналог массивов в ларавел
+Если пройтись по всем массивам, посмотреть заголовки, по пишем
+```
+public function index()  
+{  
+    $posts = Post::all(); \\ выводим все посты
+    foreach ($posts as $post){ \\ перебираем посты
+        dump($post->title); \\выводим заголовки 
+    }  
+    dd($posts);  
+}
+```
+
+Результат:
+```
+"first_title" // app/Http/Controllers/PostController.php:14
+
+"2_post" // app/Http/Controllers/PostController.php:14
+```
+
+Для выбора is_published=1, запишем метод get()
+При использовании get(), всегда попадёт коллекция в $posts.
+
+```
+public function index()  
+{  
+   $posts = Post::where('is_published', 1)->get();  
+    foreach ($posts as $post){  
+        dump($post->title);  
+    }  
+    dd('end');  
+}
+```
+
+При этом методе ничего не меняется
+
+Выведем первый пост. Для этого используется метод first()
+
+```
+public function index()  
+{  
+   $post = Post::where('is_published', 1)->first();  
+    dump($post->title);  
+    dd($post);  
+}
+```
+
+<h2>Модель. Метод добавления данных в базу (create)</h2>
