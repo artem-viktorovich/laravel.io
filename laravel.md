@@ -7,8 +7,11 @@ model ->database
 model -> view (внешняя обёртка)
 view -> router
 
+<span style="color: red;">composer dump-autoload</span>  - проверка загрузки и работоспособности файлов
+
 <span style="color:red;">model</span> - представление 1-го объекта для интерфейса php.
 
+composer create-project laravel/laravel example_app
 <h3>Первый route в laravel</h3>
 Первый request 
 Основной старт в папке routes->web.php
@@ -129,7 +132,7 @@ class PostController extends Controller
     public function index()  
     {  
         $str = 'string';  
-        dd($str);  дампим данные, то есть читаем базу
+        dd($str);  дампим данные, то есть читаем базу и прекращается          выполнение
     }  
 }
 ```
@@ -149,6 +152,7 @@ public function index()
 
 ```
 
+Если вылазит ошибка, ставим путь к модели - use App\Models\Post; или Alt + Enter
 Переменные называем как угодно
 
 Результат вызова
@@ -439,3 +443,219 @@ public function index()
 ```
 
 <h2>Модель. Метод добавления данных в базу (create)</h2>
+Для добавление данных в базу, создадим route
+
+```
+Route::get('/posts/create', [PostController::class, 'create'] );
+```
+
+Перейдём в PostController и создадим метод с атрибутами, которые находятся в таблице базы
+
+```
+class PostController extends Controller  
+{  
+    public function index()  
+    {  
+        $posts = Post::all();  
+        foreach ($posts as $post) {  
+            dump($post->title);  
+        }  
+  
+    }  
+  
+    public function create()  
+    {  
+        $postsArr = [  
+            [  
+                'title' => 'title phpstorm',  
+                'content' => 'interesting content',  
+                'image' => 'image.jpg',  
+                'likes' => '11',  
+                'is_published' => 1,  
+  
+            ], [  
+                'title' => 'another title phpstorm',  
+                'content' => 'another interesting content',  
+                'image' => 'another.jpg',  
+                'likes' => '14',  
+                'is_published' => 1,  
+  
+            ],  
+        ];  
+    }  
+}
+```
+
+Чтоб создать пост, нужно обратиться к модели Post
+
+```
+class PostController extends Controller  
+{  
+    public function index()  
+    {  
+        $posts = Post::all();  
+        foreach ($posts as $post) {  
+            dump($post->title);  
+        }  
+  
+    }  
+  
+    public function create()  
+    {  
+        $postsArr = [  
+            [  
+                'title' => 'title phpstorm',  
+                'content' => 'interesting content',  
+                'image' => 'image.jpg',  
+                'likes' => '11',  
+                'is_published' => 1,  
+  
+            ], [  
+                'title' => 'another title phpstorm',  
+                'content' => 'another interesting content',  
+                'image' => 'another.jpg',  
+                'likes' => '14',  
+                'is_published' => 1,  
+  
+            ],  
+        ];  
+        
+        
+        Post::create([   \\указывает куда добавлять пост
+            'title' => 'another title phpstorm',  
+            'content' => 'another interesting content',  
+            'image' => 'another.jpg',  
+            'likes' => '14',  
+            'is_published' => 1,  
+        ]); 
+
+		 dd('created'); -  показывает работу добавления поста в базу
+    }  
+}
+```
+
+Перейдём к посту - http://project/posts/create, далее будет ошибка
+
+Add [title] to fillable property to allow mass assignment on [App\Models\Post]. - это значит, что в ларавел стоит защита от добавления постов
+Для исправления ошибки, нужно перейти в модель, прописать разрешение <span style="color: red;">protected $guarded = []; или protected $guarded = false;  
+</span> или <span style="color: red;">protected $ fillable= [ ' ' ];</span>, но во втором случае нужно писать атрибуты с таблицы 
+
+ В браузере высветится <strong> "creared" // app\Http\Controllers\PostController.php:46,</strong> подтверждая выполнение запроса
+
+<strong>Работа с массивом</strong>
+ Для добавления массива, нужно пройтись циклом <strong>foreach</strong>
+ 
+ Пропишем цикл и проверку на выведение массива
+```
+public function create()  
+{  
+    $postsArr = [  
+        [  
+            'title' => 'title phpstorm',  
+            'content' => 'interesting content',  
+            'image' => 'image.jpg',  
+            'likes' => '11',  
+            'is_published' => 1,  
+  
+        ], [  
+            'title' => 'another title phpstorm',  
+            'content' => 'another interesting content',  
+            'image' => 'another.jpg',  
+            'likes' => '14',  
+            'is_published' => 1,  
+  
+        ],  
+    ];  
+    foreach ($postsArr as $item){  
+        dd($item);  
+        Post::create();  
+    }  
+  
+  
+  
+    dd('created');  
+}
+```
+
+Данная запись говорит о том, что массив добавлен
+
+```
+array:5 [▼ // app\Http\Controllers\PostController.php:39
+  "title" => "title phpstorm"
+  "content" => "interesting content"
+  "image" => "image.jpg"
+  "likes" => "11"
+  "is_published" => 1
+]
+```
+
+```
+public function create()  
+{  
+    $postsArr = [  
+        [  
+            'title' => 'title phpstorm',  
+            'content' => 'interesting content',  
+            'image' => 'image.jpg',  
+            'likes' => '11',  
+            'is_published' => 1,  
+  
+        ], [  
+            'title' => 'another title phpstorm',  
+            'content' => 'another interesting content',  
+            'image' => 'another.jpg',  
+            'likes' => '14',  
+            'is_published' => 1,  
+  
+        ],  
+    ];  
+    foreach ($postsArr as $item){  
+        Post::create($item);  
+    }  
+  
+  
+  
+    dd('created');  
+}
+```
+
+Результат Created, посты добавлены в таблицу
+
+<h2>Модель. Методы обновления данных (update)</h2>
+
+Для обновления данных в базу, создадим route
+
+```
+Route::get('/posts/update', [PostController::class, 'update'] );
+```
+
+Для обновления данных, нужно по id вытаскивать нужным нам пост
+
+пропишем в контроллере
+
+```
+public function update()  
+{  
+    $post = Post::find(6);  - айдишник поста
+    dd($post->title); - заголовок поста
+}
+```
+
+Создадим объект вызывая метод <strong>update</strong>
+
+```
+public function update()  
+{  
+    $post = Post::find(6);  
+    $post ->update([  
+        'title' => 'updated title phpstorm',  
+        'content' => 'updated interesting content',  
+        'image' => 'updated.jpg',  
+        'likes' => '13',  
+        'is_published' => 0,  
+    ]);  
+    dd('update');  - проверка выполнения операции
+}
+```
+
+По ключу меняем нужные значения тем самым обновляя данные в таблице
