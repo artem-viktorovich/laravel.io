@@ -712,3 +712,68 @@ public function delete()
 После обновления удалённый пост восстанавливается и дата удаляется.
 
 <h2>Комбинированные  методы создания и обновления данных</h2>
+Бывают ситуации, когда из базы требуется достать запись, но её нет, соответственно её нужно создать, для этого используют <strong>firstOrCreate</strong>. Иногда это используется для проверки дубликатов.
+Аналогичный запрос <strong>updateOrCreate</strong> - обновление постов, записей и при этом совпадение по атрибутам.
+
+Создаём route 
+
+```
+Route::get('/posts/firstOrCreate', [PostController::class, 'firstOrCreate'] );
+```
+
+Прописываем в контроллере новый класс для добавления поста
+
+```
+public function firstOrCreate()  
+{  
+    $anotherPost = [  
+        'title' => 'Create title phpstorm',  
+        'content' => 'Create interesting content',  
+        'image' => 'Create.jpg',  
+        'likes' => '132',  
+        'is_published' => 1,  
+    ];  
+    $post = Post::firstOrCreate([  
+        'title' => 'Create title phpstorm',  если находится пост с таким title,то он его отдаёт, если нет, он создаёт пост со всем содержащим в title ниже
+    ],[  
+        'title' => 'Create title phpstorm',  
+        'content' => 'Create interesting content',  
+        'image' => 'Create.jpg',  
+        'likes' => '132',  
+        'is_published' => 1,  
+    ]);  
+    dump($post->content);  
+    dd('firstOrCreate');  
+}
+```
+
+ При проверке title, если его содержимое совпадает с содержимым в таблице, в браузере будет ответ - <span style="color:red;">"interesting content" // app\Http\Controllers\PostController.php:82</span>
+ Если нет такого поста с таким содержимым, в браузере появится ответ - <span style="color:red;">"Create interesting content" // app\Http\Controllers\PostController.php:82</span>
+ Аналогично срабатывает updateOrCreate, при проверке, проверяется title? если он есть, можно обновить данные
+```
+public function updateOrCreate()  
+{  
+    $anotherPost = [  
+        'title' => 'update title phpstorm',  
+        'content' => 'update interesting content',  
+        'image' => 'Create.jpg',  
+        'likes' => '132',  
+        'is_published' => 1,  
+    ];  
+    $post = Post::updateOrCreate([  
+        'title' => 'update title phpstorm',  
+    ],[  
+        'title' => 'update title phpstorm2',  
+        'content' => 'Create interesting content',  
+        'image' => 'Create.jpg',  
+        'likes' => '132',  
+        'is_published' => 1,  
+    ]);  
+    dump($post->content);  
+    dd('updateOrCreate');  
+}
+```
+
+<h2>  Миграции. Редактирование миграций </h2>
+
+
