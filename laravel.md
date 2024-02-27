@@ -776,4 +776,156 @@ public function updateOrCreate()
 
 <h2>  Миграции. Редактирование миграций </h2>
 
+Для изменения миграций создаётся другая миграция.
 
+Основные действия:
+<ul>
+<li>удалить атрибут</li>
+<li>добавить атрибут</li>
+<li>изменить атрибут</li>
+</ul>
+
+Выполним добавление колонки через миграцию
+
+<span style='color: red;'>php artisan make:migration add_column_description_to_posts_table</span> - данная миграция с аббревиатурой <strong>to_posts_table</strong> говорит о том, что идёт привязка к таблице posts, и её редактирование
+
+принцип изменения таблицы, описывается в таблице, и обязательно нужно внести откат миграции
+
+Прописываем добавление колонки в таблице
+
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->text('description')->nullable();  
+    });  
+}
+```
+
+Для отката, также пропишем удаление изменений
+```
+public function down(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->dropColumn('description');  
+    });  
+}
+```
+
+Далее выполняем накат миграции <span style="color:red;">php artisan migrate</span>
+
+Проверяем откат миграции <span style="color:red;">php artisan migrate:rollback</span>
+
+Так как добавляемая колонка прописывается последней нужно прописать место создания колонки
+
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->text('description')->nullable()->after('content');  
+    });  
+}
+```
+
+Для удаления конкретной колонки пропишем команду - <span style="color:red;">php artisan make:migration delete_column_description_to_posts_table</span>
+
+Миграция создана. В созданной миграции нужно прописать удаление колонки
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->dropColumn('description');  
+    });  
+}
+```
+
+Для отката действия прописываем создание колонки
+
+```
+public function down(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->text('description')->nullable()->after('content');  
+    });  
+}
+```
+
+Далее идёт редактирование атрибутов
+
+Создаем миграцию с привязкой к таблице - <span style="color:red;">php artisan make:migration edit_column_content_to_posts_table</span>
+
+В созданной миграции, прописываем правило изменения для указанных атрибутов
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->renameColumn('content', 'post_content');  
+    });  
+}
+```
+
+Аналогично делаем для отката
+
+```
+public function down(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->renameColumn('post_content', 'content');  
+    });  
+}
+```
+
+Изменим атрибут у <strong>post_content</strong> - <span style="color:red;"> php artisan make:migration change_column_post_content_to_string_to_posts_table</span>
+В созданной миграции прописываем правило для изменения атрибута
+
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->string('post_content')->change();  
+    });  
+}
+```
+
+Откат действий
+
+```
+public function down(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->text('post_content')->change();  
+    });  
+}
+```
+
+Для удаления таблицы создаём миграцию <strong>php artisan make:migration delete_table_from_db</strong>
+
+
+```
+public function up(): void  
+{  
+    Schema::table('posts', function (Blueprint $table) {  
+        $table->text('description')->nullable()->after('content');  
+    });  
+}
+```
+
+Для отката прописывается создание таблицы
+
+```
+public function down(): void  
+{  
+    Schema::create('posts', function (Blueprint $table) {  
+    $table->id();  
+    $table->string('title');  
+    $table->string('post_content');  
+    $table->string('image')->nullable();  
+    $table->unsignedBigInteger('likes')->nullable();  
+    $table->boolean('is_published')->default(1);  
+    $table->timestamps();  
+    $table->softDeletes();  
+}); 
+}
+```
+
+<h2>View</h2>
