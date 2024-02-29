@@ -989,3 +989,115 @@ public function index()
 
 В браузер выводится title, который прописан в таблице БД
 
+
+Пропишем все теги для работы и вывода базы данных
+
+```
+@foreach($posts as $post)  
+    <div>{{$post->title}}</div>   
+    <div>{{$post->content}}</div>   
+    <div>{{$post->likes}}</div>  
+@endforeach
+```
+
+Во view можно создавать систему шаблонов
+До пустим будет несколько страниц
+Для этого создаётся система шаблонизации, чтобы повторяющие части кода не прописывать по новой
+Для этого создадим папку views/layouts/main.blade.php
+
+Далее нужно laravel объяснить, что создаваемый шаблон можно пере использовать на других страницах.
+
+Этот способ даст возможность подгрузки других страниц, в зависимости от того, какую выбираем
+
+Для этого создаём тег в других страницах
+
+```
+@section('content')  тег для переиспользования контента на других страницах
+    <div>  
+        this is about page  
+    </div>  
+@endsection
+```
+
+Для того, чтобы этот тег подгружался, в создаваемом шаблоне прописываем тег <strong>@yield</strong>
+
+Прописываем тег, с обращением в шаблон -  @yield('content')
+
+```
+<!doctype html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport"  
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">  
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">  
+    <title>Document</title>  
+</head>  
+<body>  
+<div>  
+    @yield('content')  
+</div>  
+</body>  
+</html>
+```
+
+В странице, которую нужно экспортировать на шаблон, нужно  указать extends, для связки с шаблоном
+	
+Пример:
+	В файле posts.blade.php пишем связку
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        this is about page  
+    </div>  
+@endsection
+```
+
+Для того, чтобы страницы работали, нужно создать Route, под каждую страницу и контроллеры. В файле web.php прописываем роуты
+
+
+В созданных контроллерах прописываем обращение к постам
+
+```
+<?php  
+  
+namespace App\Http\Controllers;  
+  
+use App\Models\Post;  
+use Illuminate\Http\Request;  
+  
+class AboutController extends Controller  
+{  
+    public function index()  
+    {  
+        return view('about');  
+  
+    }  
+}
+```
+По аналогии прописывается contact и main
+
+В файле main.blade.php создадим навигацию.
+```
+<div>  
+    <nav>        
+    <ul>            
+	    <li><a href="{{route('about.index')}}">About</a></li>  
+		<li><a href="{{route('main.index')}}">Main</a></li>  
+		<li><a href="{{route('contact.index')}}">Contact</a></li>  
+		<li><a href="{{route('post.index')}}">Posts</a></li>
+    </ul>    
+    </nav>
+    </div>
+```
+
+Для использования ссылок, в роутах, нужно задать имя этим ссылкам
+
+```
+  
+Route::get('/posts', [PostController::class, 'index'] )->name('post.index');  
+Route::get('/about', [AboutController::class, 'index'] )->name('about.index');  
+Route::get('/contact', [ContactController::class, 'index'] )->name('contact.index');  
+Route::get('/main', [MainController::class, 'index'] )->name('main.index');
+```
