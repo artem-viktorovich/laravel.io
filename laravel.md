@@ -1101,3 +1101,82 @@ Route::get('/about', [AboutController::class, 'index'] )->name('about.index');
 Route::get('/contact', [ContactController::class, 'index'] )->name('contact.index');  
 Route::get('/main', [MainController::class, 'index'] )->name('main.index');
 ```
+
+<h2>bootstrap в ларе</h2>
+<h3>Подключение в проекту</h3>
+Bootstrap подключается через интерфейс лары
+<strong>composer require laravel/ui</strong> - команда установки ui компонентов
+После установки, прописываем команду <strong>php artisan</artisan>, вывод кода
+
+```
+ ui
+  ui:auth                 Scaffold basic login and registration views and routes
+  ui:controllers          Scaffold the authentication controllers
+```
+
+Фрагмент кода, который говорит об установке компонентов
+
+Подключаем - <strong>php artisan ui bootstrap</strong>
+Появится ошибка и команды, которые помогут установить доп пакеты npm
+
+```
+   WARN  Please run [npm install && npm run dev] to compile your fresh scaffolding.
+```
+
+Так как OPEN SERVER не видит этого пакета, делаем установку с помощью php storm
+
+после команды php run dev , выводится информация
+```
+
+> dev
+> vite
+
+
+  VITE v4.5.2  ready in 244 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h to show help
+
+  LARAVEL v10.44.0  plugin v0.7.8
+
+  ➜  APP_URL: http://localhost
+
+
+```
+Говорит о том, что компилятор запущен, для выгрузки проекта, в конечный результат, нужно запустить команду <strong>npm run build</strong>
+
+<strong>vite.config.js</strong> - настройка компиляции кода
+
+В директории public, появится папка build с компилированными стилями
+
+<h3>подключаем bootstrap</h3>
+Переходим в директорию <strong>views/layouts/main.blade.php</strong> и подключаем стили
+
+Используем хелпер, для подключения стилей
+
+```
+<link rel="stylesheet" href="{{asset('build/assets/app-1bd03d06.css')}}">
+```
+
+Добавим пару классов
+
+```
+<div class="container">  
+    <div class="row">  
+        <nav>            
+        <ul>                
+		        <li><a href="{{route('about.index')}}">About</a></li>  
+                <li><a href="{{route('main.index')}}">Main</a></li>  
+                <li><a href="{{route('contact.index')}}">Contact</a></li>  
+                <li><a href="{{route('post.index')}}">Posts</a></li>  
+            </ul>        
+        </nav>    
+        </div>    
+        @yield('content')  
+</div>
+```
+
+и перейдя на сайт, видно изменение стилей и добавится контейнер
+
+<h2>CRUD через интерфейс, Имена роутов, контроллеров по конвенции Laravel</h2>
