@@ -1180,3 +1180,400 @@ Bootstrap подключается через интерфейс лары
 и перейдя на сайт, видно изменение стилей и добавится контейнер
 
 <h2>CRUD через интерфейс, Имена роутов, контроллеров по конвенции Laravel</h2>
+CRUD реализует связку того, что приходит с фронтенда, идёт обработка и получать нужный нам результат
+
+В CRUD существует 7 шаблонов
+
+<a href="https://laravel.su/docs/10.x/controllers#deistviia-vypolniaemye-resursnymi-kontrollerami" target="_blank">Основная информация</a> 
+
+Route Name -  описывается основной нейминг роутов
+
+Так как нужно соблюдать конвенцию, нужно переименовать blade файлы, дабы привести к нужному виду. Так как работаем с постами, нужно подстроить под посты.
+
+Создаём директорию post перемещаем файл posts.blade.php, переименовываем в  index.blade.php и редактируем контроллер
+
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    return view('post.index', compact('posts'));  
+  
+}
+```
+
+index.blade.php пропишем код, для вывода title
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        @foreach($posts as $post)  
+            <div>  
+                {{$post->id}}. {{$post->title}}  айдишник и заголовок
+            </div>  
+        @endforeach  
+    </div>  
+@endsection
+```
+
+Далее нужно создать интерфейс для поста, вторая строка таблицы
+
+В контроллере PostController редактируем <strong>create</strong>
+
+```
+public function create()  
+{  
+    return view('post.create');  
+}
+```
+
+файл <strong>create.blade.php</strong> - создаём интерфейс
+
+```
+<div>  
+    <form action="{{route('post.store')}}" method="post">
+				    связь добавления поста с оправкой в бд   
+    <div class="mb-3">  
+            <label for="title" class="form-label">Title</label>  
+            <input type="text" class="form-control" id="title" placeholder="Title">  
+        </div>        
+        <div class="mb-3">  
+            <label for="content" class="form-label">Content</label>  
+            <textarea type="text" class="form-control" id="content" placeholder="Content"></textarea>  
+        </div>        
+        <div class="mb-3">  
+            <label for="image" class="form-label">Content</label>  
+            <input type="text" class="form-control" id="image" placeholder="image">  
+        </div>        
+        <button type="submit" class="btn btn-primary">Создать пост</button>  
+    </form></div>
+```
+Переходим по адресу роута posts/create
+Появляется форма, для работы добавления поста
+
+Теперь нужно создать роут, куда будут приходить эти данные store, 3я строка
+
+Создаём роут в web.php
+
+```
+Route::post('/posts', [PostController::class, 'store'] )->name('post.store');
+															отправка данных
+```
+
+В контроллере создаём метод store
+
+```
+public function store()  
+{  
+    dd('store');  
+}
+```
+
+
+При отправке поста, возникнет ошибка 419, это говорит о том, что при использовании кроме алгоритмов get, нужно использовать <span style="font-size: 30px;">CRSF токен </span>
+Добавляется он в форме
+Редактируем, добавляя name, с ключами полей
+```
+<form action="{{route('post.store')}}" method="post">  
+    @csrf  - наш токен
+    <div class="mb-3">  
+        <label for="title" class="form-label">Title</label>  
+        <input type="text" name="title" class="form-control" id="title" placeholder="Title">  
+    </div>    <div class="mb-3">  
+        <label for="content" class="form-label">Content</label>  
+        <textarea type="text" name="content" class="form-control" id="content" placeholder="Content"></textarea>  
+    </div>    <div class="mb-3">  
+        <label for="image" class="form-label">Content</label>  
+        <input type="text" name="image" class="form-control" id="image" placeholder="image">  
+    </div>    <button type="submit" class="btn btn-primary">Создать пост</button>  
+</form>
+```
+
+Теперь при добавлении поста, роут отрабатывает корректно.
+Далее нужно получить данные, которые вводятся в поля
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',    \
+        'content' => 'string',   } контроль заполнения полей
+        'image' => 'string',    /
+    ]);  
+    dd($data); 
+}
+```
+
+Информация о <a href="https://laravel.su/docs/8.x/validation#dostupnye-pravila-validacii" target="_blank"> валидации </a>
+
+Теперь сделаем создание поста в store
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+    ]);  
+    Post::create($data);  
+    return redirect()->route('post.index');  - возврат на страницу опубликованных постов
+}
+```
+
+Для создания конкретной записи, нужно создать роут
+
+```
+Route::get('/posts/{post}', [PostController::class, 'show'] )->name('post.show');
+```
+
+Теперь создадим action в контроллере
+
+```
+public function show($id)  
+{  
+    $post = Post::find($id);  
+  
+    dd($id);  
+}
+```
+
+Данная запись, показывает, что можно прописать любой ключ в айдишник, так как прописано правило <strong>/posts/{post}</strong>
+
+Пропишем вывод title через прописанный айдишник
+
+```
+public function show($id)  
+{  
+    $post = Post::find($id);  
+  
+    dd($post->title);  
+}
+```
+
+Если вписать айдишник, которого в таблице нет, то вылезет ошибка - <strong>Attempt to read property "title" on null</strong>
+
+Поэтому используется метод - <strong>findOrFail</strong>
+
+```
+public function show($id)  
+{  
+    $post = Post::findOrFail($id);  
+  
+    dd($post->title);  
+}
+```
+
+Если искуемый айдишник не будет найден,. то вернёт ошибку 404
+
+Данную запись можно упростить - 
+
+```
+public function show(Post $post)  
+{  
+    dd($post->title);  
+}
+```
+Для возврата поста, создадим конструкцию в новом файле в директории - views/post/show.blade.php
+
+```
+@extends('layouts.main')  
+@section('content')  
+            <div> {{$post->id}}. {{$post->title}}  
+            </div>  
+            <div>  {{$post->content}}</div>  
+  
+@endsection
+```
+
+В контроллере, пропишем action
+
+```
+public function show(Post $post)  
+{  
+    return view('post.show', compact('post'));  
+}
+```
+
+При выборе айдишника, получим title и контент поста
+
+Теперь сделаем возможность переходить на пост и смотреть его содержимое
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        @foreach($posts as $post)  
+            <div><a href="{{route('post.show', $post->id)}}">{{$post->id}}. {{$post->title}}</a></div>  
+        @endforeach  
+    </div>  
+@endsection
+```
+
+Теперь в show сделаем кнопку для возврата на предыдущую страницу
+
+```
+@extends('layouts.main')  
+@section('content')  
+            <div>{{$post->id}}. {{$post->title}}</div>  
+            <div>{{$post->content}}</div>  
+            <div><a href="{{route('post.index')}}">Назад</a></div>  
+@endsection
+```
+
+Теперь в index.blade.php сделаем кнопку для перехода на страницу создания поста
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <a href="{{route('post.create')}}">Создать пост</a>  - добавленная функция
+    </div>    <div>        @foreach($posts as $post)  
+            <div><a href="{{route('post.show', $post->id)}}">{{$post->id}}. {{$post->title}}</a></div>  
+        @endforeach  
+    </div>  
+@endsection
+```
+
+
+Создадим route - edit , для редактирования поста
+
+```
+Route::get('/posts/{post}/edit', [PostController::class, 
+                   {айдишник поста}/edit
+                   'edit'] )->name('post.edit');
+```
+
+Обратимся к action
+
+```
+public function edit(Post $post)  
+{  
+   return view('post.edit', compact('post'));
+}
+```
+
+Создаём файл edit.blade.php, поместив туда форму
+Редактируем данные приёма и способ метод отправки
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <form action="{{route('post.update', $post->id)}}" 
+                                    используемый роут
+                                    method="post">  
+            @csrf  
+            @method('patch')  - метод отправки по конвенции ларавел
+            <div class="mb-3">  
+                <label for="title" class="form-label">Title</label>  
+                <input type="text" name="title" class="form-control" id="title" placeholder="Title">  
+            </div>            <div class="mb-3">  
+                <label for="content" class="form-label">Content</label>  
+                <textarea type="text" name="content" class="form-control" id="content" placeholder="Content"></textarea>  
+            </div>            <div class="mb-3">  
+                <label for="image" class="form-label">Content</label>  
+                <input type="text" name="image" class="form-control" id="image" placeholder="image">  
+            </div>            <button  type="submit" class="btn btn-primary">Создать пост</button>  
+        </form>    </div>@endsection
+```
+
+Создадим route под patch
+
+```
+Route::patch('/posts/{post}', [PostController::class, 'update'] )->name('post.update');
+```
+
+создаём action в контроллере
+
+```
+public function update(Post $post)  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+    ]);  получаем наши данные
+  
+    $post->update($data);  отправляются данные на изменение
+    return redirect()->route('post.show', $post->id); 
+    вывод измененных данны 
+}
+```
+
+<strong>В БД также обновлен пост</strong>
+
+Но нет ссылки, перейдём в show и создадим 
+
+```
+@extends('layouts.main')  
+@section('content')  
+            <div>{{$post->id}}. {{$post->title}}</div>  
+            <div>{{$post->content}}</div>  
+            <div>                <a class="btn btn-primary mt-3 mb-3" href="{{route('post.edit', $post->id)}}">Редактировать</a> - созданная ссылка 
+            </div>            <div><a class="btn btn-primary" href="{{route('post.index')}}">Назад</a></div>  
+@endsection
+```
+
+Но при нажатии на редактирование, поля пустые
+
+Поэтому нужно прописать значение <strong>value</strong>
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <form action="{{route('post.update', $post->id)}}" method="post">  
+            @csrf  
+            @method('patch')  
+            <div class="mb-3">  
+                <label for="title" class="form-label">Title</label>  
+                <input type="text" name="title" class="form-control" id="title" placeholder="Title" value="{{$post->title}}">  
+            </div>            <div class="mb-3">  
+                <label for="content" class="form-label">Content</label>  
+                <textarea type="text" name="content" class="form-control" id="content" placeholder="Content" >{{$post->content}}</textarea>  
+            </div>            <div class="mb-3">  
+                <label for="image" class="form-label">Content</label>  
+                <input type="text" name="image" class="form-control" id="image" placeholder="image" value="{{$post->image}}">  
+            </div>            <button  type="submit" class="btn btn-primary">Редактировать пост</button>  
+        </form>    </div>@endsection
+```
+
+Но при удалении какой-либо ячейки, и нажатии на обновление поста, валидатор не пропускает и удалённое значение восстанавливается. Это своего рода защита от базы, чтобы не было ошибок
+
+Теперь реализация удаления поста - DELETE
+
+Создаём роут
+
+```
+Route::delete('/posts/{post}', [PostController::class, 'destroy'] )->name('post.destroy');
+```
+
+Прописываем action в контроллере
+
+```
+public function destroy(Post $post)  
+{  
+    $post->delete();  
+    return redirect()->route('post.index');  
+}
+```
+
+В файле show добавим удаление
+
+```
+@extends('layouts.main')  
+@section('content')  
+            <div>{{$post->id}}. {{$post->title}}</div>  
+            <div>{{$post->content}}</div>  
+            <div>                <a class="btn btn-primary mt-3 mb-3" href="{{route('post.edit', $post->id)}}">Редактировать</a>  
+            </div>            <div>                <form class="btn btn-primary mb-3" action="{{route('post.delete', $post->id)}}" method="post">  
+                    @csrf  
+                    @method('delete')  
+                    <input type="submit" value="Удалить">  
+                </form>            </div>            <div><a class="btn btn-primary" href="{{route('post.index')}}">Назад</a></div>  
+@endsection
+```
+Для удаления нужно прописать форму,  c action в котором помещается route с информацией о посте
+
+Посты удалены, в таблице при удалении появилась информация в deleted__at
