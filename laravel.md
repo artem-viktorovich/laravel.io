@@ -1577,3 +1577,186 @@ public function destroy(Post $post)
 Для удаления нужно прописать форму,  c action в котором помещается route с информацией о посте
 
 Посты удалены, в таблице при удалении появилась информация в deleted__at
+
+<h2>Отношение один ко многим</h2>
+Отношение между моделями в базе
+
+Существуют несколько вариантов отношений моделей в базе. Так как в постах и базе могут быть категории, то между ними нужно сделать связь.
+
+Для создания отношение, нужно создать категории
+
+```
+php artisan make:model Category -m
+```
+
+создаётся таблица категорий и модель Category
+
+Создадим одну колонку 
+```
+public function up(): void  
+{  
+    Schema::create('categories', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  - созданная колонка
+        $table->timestamps();  
+    });  
+}
+```
+
+У одной категории может быть много постов, также у одного поста, может быть одна категория
+
+В таблице постов добавим значения
+
+```
+public function up(): void  
+{  
+    Schema::create('posts', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  
+        $table->text('content');  
+        $table->string('image')->nullable();  
+        $table->unsignedBigInteger('likes')->nullable();  
+        $table->boolean('is_published')->default(1);  
+        $table->timestamps();  
+        $table->softDeletes();  
+  
+        $table->unsignedBigInteger('category_id')->nullable(); - не будет отрицательных значений, положительные удваиваются
+        $table->index($table->index('category_id', 'post_category_idx'); - связка с категорией и именем таблицы
+        $table->foreign('category_id', 'post_category_fk')->on('categories')->references('id');
+        связка категорий с именем таблицы и присвоение айдишника
+    });  
+}
+```
+
+Выполним миграцию <strong>php artisan migrate</strong>
+
+В БД создаётся таблица <strong>categories</strong>
+
+Перезапишем миграции <strong>php artisan migrate:fresh
+</strong>
+Если возникнет ошибка в posts, но удаляем Category и таблицу миграции. Отдельно создаём миграцию постов, затем отдельно миграцию категорий
+
+Создадим категорию в БД
+
+categories пропишем title cats, dogs
+posts - пропишем 
+
+	cats title cats content  fhfhf.pnd 12 1 ссылка автоматически выбирает айдишник категории
+
+перейдём в контроллер и поработаем с <strong>index</strong>
+
+Выведем категории
+
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    $categories = Category::all();  
+  
+    dd($categories);  
+  
+}
+```
+
+в браузере появятся категории
+
+Это даёт возможность брать посты, которые принадлежат определённой категории
+
+Выведем нужную категорию
+
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    $categories = Category::find(1);  
+    dd($categories->title);  
+
+}
+```
+
+
+Выведем посты, которые принадлежат нужной категории
+
+```
+public function index()  
+{  
+    $category = Category::find(1);  
+  
+    $posts = Post::where('category_id', $category->id)->get();  
+    dd($posts);  
+}
+```
+
+В браузере выводится результат запроса
+```
+Illuminate\Database\Eloquent\Collection {#1303 ▼ // app\Http\Controllers\PostController.php:16
+  #items: array:2 [▼
+    0 => App\Models\Post {#1304 ▶}
+    1 => App\Models\Post {#1305 ▶}
+  ]
+  #escapeWhenCastingToString: false
+}
+```
+
+Чтобы ускорить запрос, будем работать в модели Category
+
+```
+class Category extends Model  
+{  
+    use HasFactory;  
+  
+    public function posts()  
+    {  
+        return $this->hasMany(Post::class, 'category_id', 'id'); 
+									    =category_id в таблице 
+    }  
+}
+```
+
+hasMany - определяем отношение данного объекта с другим объектом (посты)
+
+Упростим запрос в контроллере
+
+```
+public function index()  
+{  
+    $category = Category::find(1);  
+    dd($category->posts);  
+}
+```
+
+Браузер выводит тот же результат
+
+Также сделаем с постами
+Добавим запись в модель поста
+
+```
+class Post extends Model  
+{  
+    use HasFactory;  
+    use SoftDeletes;  
+    protected $table = 'posts';  
+    protected  $guarded = false;  
+  
+    public function category()  - связь с категорией
+    {  
+        return $this->belongsTo(Category::class, 'category_id', 
+                      ^обратная связка
+                      'id');  
+    }  
+}
+```
+
+Пропишем вызов категорий
+
+```
+public function index()  
+{  
+    $category = Category::find(1);  
+    $post = Post::find(3);  - смотреть айдишник в БД
+    dd($post->category);  
+}
+```
+
+<h2>Отношения многие ко многим</h2>
+
