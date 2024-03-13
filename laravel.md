@@ -1760,3 +1760,119 @@ public function index()
 
 <h2>Отношения многие ко многим</h2>
 
+У каждого поста, может быть много тегов, как и у тега, может быть много постов
+Создадим миграцию для тегов - <strong>php artisan make:model Tag -m</strong>
+
+В миграции создадим title
+
+```
+public function up(): void  
+{  
+    Schema::create('tags', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  
+        $table->timestamps();  
+    });  
+}
+```
+
+Чтобы связать одну таблицу с другой, создадим ещё одну промежуточную таблицу
+Для связки используем метод связки через модель - <strong>php artisan make:model PostTag -m</strong>
+
+В таблице пропишем связку
+
+```
+public function up(): void  
+{  
+    Schema::create('post_tags', function (Blueprint $table) {  
+        $table->id();  
+  
+        $table->unsignedBigInteger('post_id');  
+        $table->unsignedBigInteger('tag_id');  
+  
+        $table->index('post_id', 'post_tag_post_idx');  
+        $table->index('tag_id', 'post_tag_tag_idx');  
+  
+        $table->foreign('post_id', 'post_tag_post_fk')->on('posts')->references('id');  
+        $table->foreign('tag_id', 'post_tag_tag_fk')->on('tags')->references('id');  
+  
+        $table->timestamps();  
+    });  
+}
+```
+
+Делаем миграцию php artisan migrate
+Таблица в БД - post_tags
+
+Добавим теги (tags) , holidays, travel, pizza
+
+Добавим в постах строку holidays title, holidays content, 1.png, 30, 1, категория dogs
+
+Таблица post_tags
+
+```
+		id post_id tag_id
+		1 1 1
+		2 1 3
+		3 2 2
+		4 2 1
+		5 3 1
+		6 3 1
+		7 3 1
+```
+
+Поработаем с постами через контроллер
+
+```
+public function index()  
+{  
+    $post = Post::find(1);  
+    dd($post->tags);  
+}
+```
+
+При таком запросе результат - null
+
+Создадим связь в модели поста
+
+<strong>belongsToMany()</strong> - двусторонняя связь постов с тегами
+
+```
+class Post extends Model  
+{  
+    use HasFactory;  
+    use SoftDeletes;  
+    protected $table = 'posts';  
+    protected  $guarded = false;  
+  
+    public function category()  
+    {  
+        return $this->belongsTo(Category::class, 'category_id', 'id');  
+    }  
+    public function tags()  
+    {  
+        return $this->belongsToMany(Tag::class, 'post_tags', 'post_id', 'tag_id');  связь отношение ко многим(такой способ можно копипастить, ГЛАВНОЕ ПОДСТАВЛЯТЬ НУЖНЫЕ ЗНАЧЕНИЯ)
+    }  
+}
+```
+
+Пропишем для Tag в контроллере
+
+```
+public function index()  
+{  
+    $post = Post::find(1);  
+    $tag = Tag::find(1);  
+    dd($tag->posts);  
+}
+```
+
+В модели Tag пропишем отношение тегов к постам
+
+```
+public function posts()  
+{  
+    return $this->belongsToMany(Post::class, 'post_tags', 'tag_id', 'post_id');  
+}
+```
+
