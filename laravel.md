@@ -1876,3 +1876,174 @@ public function posts()
 }
 ```
 
+<h2>CRUD через интерфейс - модифицируем интерфейс</h2>
+
+Вернём функцию создания постов
+
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    return view('post.index', compact('posts'));  
+}
+```
+
+Добавим выпадающий список с элементов бутстрапа
+
+```
+<select class="form-select form-select-sm mb-3" aria-label=".form-select-sm">  
+    <option selected>Категория</option>  
+    <option value="1">1</option>  
+  
+</select>
+
+```
+
+
+create.blade.php
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <form action="{{route('post.store')}}" method="post">  
+            @csrf  
+            <div class="mb-3">  
+                <label for="title" class="form-label">Title</label>  
+                <input type="text" name="title" class="form-control" id="title" placeholder="Title">  
+            </div>            <div class="mb-3">  
+                <label for="content" class="form-label">Content</label>  
+                <textarea type="text" name="content" class="form-control" id="content" placeholder="Content"></textarea>  
+            </div>            <div class="mb-3">  
+                <label for="image" class="form-label">Content</label>  
+                <input type="text" name="image" class="form-control" id="image" placeholder="image">  
+            </div>            <select class="form-select form-select-sm mb-3" aria-label=".form-select-sm">  
+    <option selected>Категория</option>  
+    <option value="1">1</option>  
+  
+</select>           <button  type="submit" class="btn btn-primary">Создать пост</button>  
+        </form>    </div>@endsection
+```
+
+Нужные списки не нужны, теперь нужно добавить функционал, то есть связать с интерфейсом выбор категорий
+
+В контроллере пропишем вывод в create
+
+```
+public function create()  
+{  
+    $categories = Category::all();  
+    return view('post.create', compact('categories'));  
+}
+```
+
+Добавим вывод категорий в код
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <form action="{{route('post.store')}}" method="post">  
+            @csrf  
+            <div class="mb-3">  
+                <label for="title" class="form-label">Title</label>  
+                <input type="text" name="title" class="form-control" id="title" placeholder="Title">  
+            </div>            <div class="mb-3">  
+                <label for="content" class="form-label">Content</label>  
+                <textarea type="text" name="content" class="form-control" id="content" placeholder="Content"></textarea>  
+            </div>            <div class="mb-3">  
+                <label for="image" class="form-label">Content</label>  
+                <input type="text" name="image" class="form-control" id="image" placeholder="image">  
+            </div>            <select class="form-select form-select-sm mb-3" aria-label=".form-select-sm" name="category_id">  
+                @foreach($categories as $category)  - перебор категорий
+                    <option value="{{$category->id}}">{{$category->title}}</option>  - вывод категорий
+                @endforeach  
+            </select>  
+            <button  type="submit" class="btn btn-primary">Создать пост</button>  
+        </form>    </div>@endsection
+```
+
+Правим store
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '', - добавленный нейминг
+  
+    ]);  
+    Post::create($data);  
+    return redirect()->route('post.index');  
+}
+```
+
+Добавим категории в update (edit.blade.php)
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <form action="{{route('post.update', $post->id)}}" method="post">  
+            @csrf  
+            @method('patch')  
+            <div class="mb-3">  
+                <label for="title" class="form-label">Title</label>  
+                <input type="text" name="title" class="form-control" id="title" placeholder="Title" value="{{$post->title}}">  
+            </div>            <div class="mb-3">  
+                <label for="content" class="form-label">Content</label>  
+                <textarea type="text" name="content" class="form-control" id="content" placeholder="Content" >{{$post->content}}</textarea>  
+            </div>            <div class="mb-3">  
+                <label for="image" class="form-label">Content</label>  
+                <input type="text" name="image" class="form-control" id="image" placeholder="image" value="{{$post->image}}">  
+            </div>  
+            <select class="form-select form-select-sm mb-3" aria-label=".form-select-sm" name="category_id">  
+                @foreach($categories as $category)  
+                    <option value="{{$category->id}}">{{$category->title}}</option>  
+                @endforeach  
+            </select>  
+  
+            <button  type="submit" class="btn btn-primary">Редактировать пост</button>  
+        </form>    </div>@endsection
+```
+
+Теперь нужно в контроллер добавить вывод категорий
+
+```
+public function edit(Post $post)  
+{  
+    $categories = Category::all();  
+    return view('post.edit', compact('post', 'categories'));  
+}
+
+
+public function update(Post $post)  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+    ]);  
+  
+    $post->update($data);  
+    return redirect()->route('post.show', $post->id);  
+}
+```
+
+ Но есть ошибка, нужно исправить ошибку, чтобы при выборе поста с категорией, было отображение именно выбранной категории. <strong>Для этого нужно сравнить айдишник с постом, который приходит с базы</strong>
+
+```
+<select class="form-select form-select-sm mb-3" aria-label=".form-select-sm" name="category_id">  
+  
+    @foreach($categories as $category)  
+        <option  
+            {{$category->id === $post->category->id ? 'selected' : ''}}  - сравнение
+            value="{{$category->id}}">{{$category->title}}</option>  
+    @endforeach  
+  
+</select>
+```
+ 
