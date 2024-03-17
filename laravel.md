@@ -2046,4 +2046,160 @@ public function update(Post $post)
   
 </select>
 ```
- 
+
+Теперь научимся добавлять теги
+
+Добавим элемент мультивыбора списка в create.blade.php
+```
+<div class="form-group">  
+    <label for="tags">Tags</label>  
+    <select class="form-select" multiple aria-label="пример множественного выбора" id="tags">  
+        <option value="1">1</option>  
+    </select></div>
+```
+
+multiple - отвечает за эту функцию
+
+в постконтроллере нужно задать прокидывание тегов
+
+```
+public function create()  
+{  
+    $categories = Category::all();  
+    $tags = Tag::all();  - вывод всех тегов
+    return view('post.create', compact('categories','tags')); 
+
+}
+tags - опрокидывание
+```
+
+
+Прописываем вывод тегов в списке
+
+```
+<div class="form-group mb-3">  
+    <label for="tags">Tags</label>  
+    <select class="form-select" multiple aria-label="пример множественного выбора" id="tags" name="tags">  
+        @foreach($tags as $tag)  
+        <option value="{{$tag->id}}">{{$tag->title}}</option>  
+        @endforeach  
+    </select>  
+</div>
+```
+
+PostController добавляем в store теги
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+  
+    ]);  
+    Post::create($data);  
+    return redirect()->route('post.index');  
+}
+```
+
+Результат вывода
+
+```
+array:5 [▼ // app\Http\Controllers\PostController.php:37
+  "title" => "fsefsefse"
+  "content" => "Cerfsr"
+  "image" => "image.png"
+  "category_id" => "2"
+  "tags" => "3" - неверный вывод
+]
+```
+
+Для исправления этой ошибки, добавим [ ] 
+
+```
+<select class="form-select" multiple aria-label="пример множественного выбора" id="tags" name="tags[]"> - даём понять, что нам нужен массив
+```
+
+Теперь при выборе нужных тегов, будет выводится массив с указанными айдишниками и их наименования
+
+```
+array:5 [▼ // app\Http\Controllers\PostController.php:37
+  "title" => "efwe"
+  "content" => "werwe"
+  "image" => "image4.jpeg"
+  "category_id" => "1"
+  "tags" => array:2 [▼
+    0 => "2"
+    1 => "3"
+  ]
+]
+```
+
+Но так как, массив создаст проблемы в создании постов, нужно с помощью unset очищать html
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+  
+    ]);  
+    $tags = $data['data'];  
+    unset($data['tags']);  
+    Post::create($data);  
+    return redirect()->route('post.index');  
+}
+
+Эта запись рахделяет посты и теги, но теперь нужно сделать привязку, чтобы теги выводились вместе с постом
+```
+
+Для начала разрешим PоstTag добавление и удаление записей
+
+```
+class PostTag extends Model  
+{  
+    use HasFactory;  
+  
+    protected $guarded = false;  -  добавленная строка
+}
+```
+
+Теперь можно напрямую обращаться к модели <strong>PоstTag</strong>
+
+
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+  
+    ]);  
+    $tags = $data['tags'];  
+    unset($data['tags']);  
+  
+    $post = Post::create($data);  
+    foreach ($tags as $tag) {  
+        PostTag::firstOrCreate([  
+            'tag_id'=>$tag,  
+            'post_id'=> $post->id,  
+        ]);  
+    }  
+  
+    return redirect()->route('post.index');  
+}
+!!!При таком методе, может происходить дублирвоание в базе, в дальнейшем, эта ошибка будет исправлена
+```
+
+Переделаем в более профессиональный способ
+
