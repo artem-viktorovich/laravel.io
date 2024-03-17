@@ -2201,5 +2201,77 @@ public function store()
 !!!При таком методе, может происходить дублирвоание в базе, в дальнейшем, эта ошибка будет исправлена
 ```
 
-Переделаем в более профессиональный способ
+Переделаем в более профессиональный способ c помощью метода <strong>attach</strong>
 
+```
+public function store()  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+  
+    ]);  
+    $tags = $data['tags'];  
+    unset($data['tags']);  
+  
+    $post = Post::create($data);  
+  
+    $post->tags()->attach($tags);  
+  
+    return redirect()->route('post.index');  
+}
+```
+
+Перенесём теги в edit в PostController
+
+```
+public function edit(Post $post)  
+{  
+    $categories = Category::all();  
+    $tags = Tag::all();  
+    return view('post.edit', compact('post', 'categories', 'tags'));  
+}
+```
+
+В файле edit.blade.php внесём теги
+
+```
+<div class="form-group mb-3">  
+    <label for="tags">Tags</label>  
+    <select class="form-select" multiple aria-label="multiple" id="tags" name="tags[]">  
+        @foreach($tags as $tag)  
+            <option  
+                @foreach($post->tags as $postTag)  
+                    {{$tag->id === $postTag->id ? 'selected' : ''}}  
+                @endforeach  
+                value="{{$tag->id}}">{{$tag->title}}</option>  
+        @endforeach  
+    </select>  
+</div>
+```
+
+Для доступа в update сделаем изменения для тегов
+
+```
+public function update(Post $post)  
+{  
+    $data = request()->validate([  
+        'title' => 'string',  
+        'content' => 'string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+    ]);  
+    $tags = $data['tags'];  
+    unset($data['tags']);  
+  
+    $post->update($data);  
+    $post->tags()->sync($tags); - всё удаляет до момента привязки и обновляет данные  
+  
+  
+    return redirect()->route('post.show', $post->id);  
+}
+```
