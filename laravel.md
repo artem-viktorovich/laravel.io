@@ -2402,3 +2402,173 @@ $data = request()->validate([
         </form>    </div>@endsection
 ```
 
+<h2>Отношение один ко многим и многие ко многим через конвенцию Laravel</h2>
+Установление отношений между моделями
+
+Удалим ранее созданные таблицы и модели
+
+Далее по новой создаём модель - php artisan make:model Post -m
+
+Прописываем наши значения таблицы, чтобы в дальнейшем использовать конвенцию laravel
+
+```
+public function up(): void  
+{  
+    Schema::create('posts', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  
+        $table->text('content');  
+        $table->string('image')->nullable();  
+        $table->unsignedBigInteger('likes')->nullable();  
+        $table->boolean('is_published')->default(1);  
+        $table->timestamps();  
+        $table->softDeletes();  
+        $table->unsignedBigInteger('category_id');  
+    });  
+}
+```
+
+Далее создаём модель категорий - php artisan make:model Category -m
+
+Пропишем значения таблицы для связки
+
+```
+public function up(): void  
+{  
+    Schema::create('categories', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  
+        $table->timestamps();  
+    });  
+}
+```
+
+Создадим Tag - php artisan make:model Tag -m
+Пропишем таблицу title
+
+```
+public function up(): void  
+{  
+    Schema::create('tags', function (Blueprint $table) {  
+        $table->id();  
+        $table->string('title');  
+        $table->timestamps();  
+    });  
+}
+```
+
+Теперь для связки нужно создать миграцию, которая связывает таблицы <strong>php artisan make:migration create_post_tag_table --create</strong>
+ПРОПИСЫВАЕТ В ЕДИНСТВЕННОМ ЧИСЛЕ В АЛФАВИТНОМ ПОРЯДКЕ
+
+Таблица создана и имеет название post_tag
+
+Добавим post_id, tag_id и будет вид
+
+```
+public function up(): void  
+{  
+    Schema::create('post_tag', function (Blueprint $table) {  
+        $table->id();  
+          
+        $table->unsignedBigInteger('post_id');  
+        $table->unsignedBigInteger('tag_id');  
+          
+        $table->timestamps();  
+    });  
+}
+```
+
+Сделаем миграцию со сбросом существующих таблиц
+
+php artisan migrate:fresh
+
+Создадим в самой таблице рандомные посты
+
+При сохранении поста, может появится ошибка - 
+```
+#1366 - Incorrect integer value: '' for column 'category_id' at row 1
+```
+
+Для этого в таблице категорий пропишем категории
+Далее пропишем 4 поста, 4 пост привяжем к 1ой категории
+
+Теперь добавим теги
+
+Проверим, что всё работает, пропишем dd для index
+
+
+```
+public function index()  
+{  
+    $posts = Post::all();  
+    dd($posts);  
+    return view('post.index', compact('posts'));  
+}
+```
+
+Теперь возьмём пост и выведем его категорию
+
+```
+public function index()  
+{  
+    $post = Post::find(1);  
+    dd($post->category);  
+    return view('post.index', compact('posts'));  
+}
+```
+
+Так как выведет null , то нужно вывести в модели эту функцию
+
+```
+class Post extends Model  
+{  
+    use HasFactory;  
+  
+    public function category()  
+    {  
+        return $this->belongsTo(Category::class);
+    }  
+  
+}
+```
+
+Теперь, чтобы вывести категорию, нужно прописать вывод категории с обращением к постам. В результате должен быть вывод 2х категорий
+
+```
+public function index()  
+{  
+    $post = Post::find(1);  
+    $category = Category::find(1);  
+    dd($category->posts);  
+    return view('post.index', compact('posts'));  
+}
+
+
+
+class Category extends Model  
+{  
+    use HasFactory;  
+  
+    public function posts()  
+    {  
+        return $this->hasMany(Post::class);  
+    }  
+}
+```
+
+Теперь выведем теги
+
+
+```
+
+
+class Tag extends Model  
+{  
+    use HasFactory;  
+  
+    public function posts()  
+    {  
+        return $this->belongsToMany(Post::class);  
+    }  
+}
+```
