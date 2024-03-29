@@ -2572,3 +2572,205 @@ class Tag extends Model
     }  
 }
 ```
+
+
+<h2>Однометодные контроллеры</h2>
+В таблице create_post_tag_table вернём значения для post_tags
+
+```
+public function up(): void  
+{  
+    Schema::create('post_tags', function (Blueprint $table) {  
+        $table->id();  
+  
+        $table->unsignedBigInteger('post_id');  
+        $table->unsignedBigInteger('tag_id');  
+  
+        $table->index('post_id', 'post_tag_post_idx');  
+        $table->index('tag_id', 'post_tag_tag_idx');  
+  
+        $table->foreign('post_id', 'post_tag_post_fk')->on('posts')->references('id');  
+        $table->foreign('tag_id', 'post_tag_tag_fk')->on('tags')->references('id');  
+  
+        $table->timestamps();  
+    });  
+}
+```
+
+Возможно появится ошибка - <strong>Add [title] to fillable property to allow mass assignment on [App\Models\Post].</strong>
+
+Для это пропишем в модели Post <strong>protected $fillable = ['title'];</strong>
+
+```
+class Post extends Model  
+{  
+    use HasFactory;  
+    protected $fillable = ['title'];   добавленная строка
+    public function category()  
+    {  
+        return $this->belongsTo(Category::class);  
+    }  
+    public function tags()  
+    {  
+        return $this->belongsToMany(Tag::class);  
+    }  
+}
+```
+
+Теперь  update работает!!!!
+
+Так как есть много методов, в любой кампании может быть свой стиль кода, поэтому надо оптимизировать код.
+
+В последствии будем пользоваться только ими
+Для использования однометодного контроллера создаём папку app/Http/Controllers/Post
+
+Переноси контроллер постов в Post  indexController.php
+
+Делаем в нём конструкцию
+
+```
+<?php  
+  
+namespace App\Http\Controllers\Post;  
+  
+  
+use App\Http\Controllers\Controller;  
+  
+  
+class indexController extends Controller{  
+      
+}
+```
+
+в ООП php есть метод __invoke. он даёт возможность подключить остальные контроллеры 
+```
+__invoke - призывать
+```
+
+В IndexController переносим данные метода c PostController и т.д.
+```
+public function __invoke()  
+{  
+    $posts = Post::all();  
+    return view('post.index', compact('posts'));  
+}
+```
+
+CreateController
+
+```
+class CreateController extends Controller  
+{  
+    public function __invoke()  
+    {  
+        $categories = Category::all();  
+        $tags = Tag::all();  
+        return view('post.create', compact('categories', 'tags'));  
+    }  
+}
+```
+
+StoreController
+
+```
+class StoreController extends Controller  
+{  
+    public function __invoke()  
+    {  
+        $data = request()->validate([  
+            'title' => 'required|string',  
+            'content' => 'string',  
+            'image' => 'string',  
+            'category_id' => '',  
+            'tags' => '',  
+  
+        ]);  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+  
+        $post = Post::create($data);  
+  
+        $post->tags()->attach($tags);  
+  
+        return redirect()->route('post.index');  
+    }  
+}
+```
+
+ShowController
+```
+class ShowController extends Controller  
+{  
+    public function __invoke(Post $post)  
+    {  
+        return view('post.show', compact('post'));  
+    }  
+}
+```
+
+EditController
+```
+class EditController extends Controller  
+{  
+    public function __invoke(Post $post)  
+    {  
+        $categories = Category::all();  
+        $tags = Tag::all();  
+        return view('post.edit', compact('post', 'categories', 'tags'));  
+  
+    }  
+}
+```
+
+UpdateController
+```
+class UpdateController extends Controller  
+{  
+    public function __invoke(Post $post)  
+    {  
+        $data = request()->validate([  
+            'title' => 'string',  
+            'content' => 'string',  
+            'image' => 'string',  
+            'category_id' => '',  
+            'tags' => '',  
+        ]);  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+  
+        $post->update($data);  
+        $post->tags()->sync($tags);  
+        return redirect()->route('post.show', $post->id);  
+    }  
+}
+```
+
+DeleteController
+```
+class DeleteController extends Controller  
+{  
+    public function __invoke(Post $post)  
+    {  
+       $post->delete();  
+return redirect()->route('post.index');
+    }  
+}
+```
+
+Теперь нужно перезаписать пути контроллеров в web.php
+
+Для этого создаётся групповой роут, в котором аргументом возвращается namespace пути
+
+```
+Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {  
+    Route::get('/posts', IndexController::class )->name('post.index');  
+    Route::get('/posts/create', CreateController::class)->name('post.create');  
+    Route::post('/posts', StoreController::class)->name('post.store');  
+    Route::get('/posts/{post}', ShowController::class )->name('post.show');  
+    Route::get('/posts/{post}/edit', EditController::class )->name('post.edit');  
+    Route::patch('/posts/{post}', UpdateController::class)->name('post.update');  
+    Route::delete('/posts/{post}', DestroyController::class )->name('post.delete');  
+});
+```
+
+устранение ошибки - SQLSTATE[HY000]: General error: 1364 Field 'content' doesn't have a default value
