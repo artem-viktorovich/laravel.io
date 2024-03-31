@@ -2597,6 +2597,23 @@ public function up(): void
 }
 ```
 
+Данная запись создаёт ограничения на действия, делаем такую запись
+
+```
+public function up(): void  
+{  
+    Schema::create('post_tag', function (Blueprint $table) {  
+        $table->id();  
+  
+        $table->unsignedBigInteger('post_id')->default(1);  
+        $table->unsignedBigInteger('tag_id')->default(1);  
+          
+  
+        $table->timestamps();  
+    });  
+}
+```
+
 Возможно появится ошибка - <strong>Add [title] to fillable property to allow mass assignment on [App\Models\Post].</strong>
 
 Для это пропишем в модели Post <strong>protected $fillable = ['title'];</strong>
@@ -2773,4 +2790,3 @@ Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
 });
 ```
 
-устранение ошибки - SQLSTATE[HY000]: General error: 1364 Field 'content' doesn't have a default value
