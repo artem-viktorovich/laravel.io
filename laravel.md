@@ -2790,3 +2790,105 @@ Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
 });
 ```
 
+<h2>Класс request</h2>
+Создадим класс, который оптимизирует код. Для этого нужно подстраивать наименование под однометодные контроллеры: <strong>php artisan make:request Post/StoreRequest</strong>
+
+Создаётся каталог по директории
+
+Http/Request/Post/StoreRequest.php
+
+Также создадим для UpdateRequest
+
+```
+public function authorize(): bool  
+{  
+    return false;  
+}
+
+меняем false на true
+```
+
+При переносе ячеек, получим вид файлов
+
+```
+class UpdateRequest extends FormRequest  
+{  
+    /**  
+     * Determine if the user is authorized to make this request.     */    public function authorize(): bool  
+    {  
+        return true;  
+    }  
+  
+    /**  
+     * Get the validation rules that apply to the request.     *     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>  
+     */    public function rules(): array  
+    {  
+        return [  
+            'title' => 'string',  
+            'content' => 'string',  
+            'image' => 'string',  
+            'category_id' => '',  
+            'tags' => '',  
+        ];  
+    }  
+}
+```
+
+```
+class StoreRequest extends FormRequest  
+{  
+    /**  
+     * Determine if the user is authorized to make this request.     */    public function authorize(): bool  
+    {  
+        return true;  
+    }  
+  
+    /**  
+     * Get the validation rules that apply to the request.     *     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>  
+     */    public function rules(): array  
+    {  
+        return [  
+            'title' => 'required|string',  
+            'content' => 'required|string',  
+            'image' => 'string',  
+            'category_id' => '',  
+            'tags' => '',  
+        ];  
+    }  
+}
+```
+
+В контроллере, нужно вызвать в виду аргументов StoreRequest $request
+
+```
+class StoreController extends Controller  
+{  
+    public function __invoke(StoreRequest $request)  
+    {  
+        $data = $request->validated();  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+        $post = Post::create($data);  
+        $post->tags()->attach($tags);  
+        return redirect()->route('post.index');  
+    }  
+}
+```
+
+Также в UpdateRequest и UpdateController
+
+```
+class UpdateController extends Controller  
+{  
+    public function __invoke(UpdateRequest $request, Post $post)  
+    {  
+        $data = $request->validate();  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+  
+        $post->update($data);  
+        $post->tags()->sync($tags);  
+        return redirect()->route('post.show', $post->id);  
+    }  
+}
+```
