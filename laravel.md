@@ -2892,3 +2892,201 @@ class UpdateController extends Controller
     }  
 }
 ```
+
+<h2>Класс Service</h2>
+
+Service - общепринятый концепт в разработке на php
+
+Создаём директиву App/Services
+
+Далее добавляем в нее Post. App/Services/Post
+
+Создаём php class App/Service/Post/Service
+
+```
+class Service  
+{  
+    public function store($data)  
+    {  
+  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+        $post = Post::create($data);  
+        $post->tags()->attach($tags);  
+    }  
+  
+    public function update($post, $data)
+    {  
+  
+        $tags = $data['tags'];  
+        unset($data['tags']);  
+  
+        $post->update($data);  
+        $post->tags()->sync($tags);  
+    }  
+}
+```
+
+Создаём базовый контроллер - php.class
+App/Http/Controllers/Post/BaseController
+
+```
+class BaseController extends Controller 
+{  
+    public $service;  
+  
+   public function __construct(Service $service)  
+   {  
+       $this->service = $service;  
+   }  
+}
+```
+Далее в файлах, используемых extends Controller, переделываем на extends BaseController
+
+Далее в Service переносим наши методы, чтобы не мусорить и оптимизировать код
+
+После оптимизации классы примут вид
+
+
+```
+class UpdateController extends BaseController  
+{  
+    public function __invoke(UpdateRequest $request, Post $post)  
+    {  
+        $data = $request->validate();  
+        $this->service->update($post, $data);
+  
+        return redirect()->route('post.show', $post->id);  
+    }  
+}
+```
+
+
+```
+class StoreController extends BaseController  
+{  
+    public function __invoke(StoreRequest $request)  
+    {  
+        $data = $request->validated();  
+        $this->service->store($data);  
+  
+        return redirect()->route('post.index');  
+    }  
+}
+```
+
+<h2> Классы Factory,Seed</h2>
+После деплоя, чтобы не заполнять таблицы категорий и тегов, можно создать классы с методами, которые будут делать это автоматически - сиды (seed)
+
+Этот файл находится в директории - database/seeders/DatabaseSeeder.php
+
+Для запуска этого файла, существует команда -  <strong>php artisan migrate --seed</strong>
+
+Также параллельно используются фабрики - Factory
+
+Директория - database/factories/UserFactory
+
+На выходе этот класс, предоставляет объекты
+
+Автоматически был создан класс PostFactory ранее, если его нет, нужно прописать команду <strong>php artisan make:factory PostFactory -m=Post</strong> приставка -m=Post делает привязку к модели Post
+
+Пропишем для примера код добавления в базу
+
+
+```
+class PostFactory extends Factory  
+{  
+    protected $model = Post::class;  
+  
+    public function definition()  
+    {  
+        return [  
+            'name' => 'name',  
+            'surname' => 'surname',  
+        ];  
+    }  
+}
+```
+
+пропишем вызов класс в фабрике
+
+```
+class DatabaseSeeder extends Seeder  
+{  
+    /**  
+     * Seed the application's database.     */    public function run(): void  
+    {  
+        $posts = Post::factory(10)->make();  
+        dd($posts);  
+  }  
+}
+```
+
+Запускаем - php artisan migrate --seed
+Высветится модели с зарезервированными данными, которые были записаны в фабрике
+
+Пропишем фабрику
+
+```
+class PostFactory extends Factory  
+{  
+    protected $model = Post::class;  
+  
+    public function definition()  
+    {  
+        return [  
+            'title' => $this->faker->title(6),  
+            'content' => $this->faker->text,  
+            'image' => $this->faker->imageUrl(),  
+            'likes' => random_int(1,20),  
+            'is_published' => 1,  
+            'category_id' => Category::get()->random()->id,  
+        ];  
+    }  
+}
+```
+
+Зайдём в сид, пропишем задания 10 постов
+
+```
+class DatabaseSeeder extends Seeder  
+{  
+    /**  
+     * Seed the application's database.     */    public function run(): void  
+    {  
+        Post::factory(10)->create();
+    }  
+}
+```
+
+Прописываем команду вызова Seeder, заходим в азу и видим наши посты
+
+Теперь создадим фабрики CategoryFactory и TagFoctory
+Подключаем в них модели Tag и Category
+Далее прописываем в них  title - 
+
+```
+'title' => $this->faker->word(),
+```
+
+Далее в Seeder пропишем вызовы этих фабрик
+
+```
+class DatabaseSeeder extends Seeder  
+{  
+    /**  
+     * Seed the application's database.     */    public function run(): void  
+    {  
+        Category::factory(10)->create();  
+        $tags = Tag::factory(10)->create();  
+        $posts = Post::factory(10)->create();  
+  
+        foreach ($posts as $post) {  
+            $tagsIds = $tags->random(5)->pluck('id');  
+            $post->tags()->attach($tagsIds);  
+        }  
+    }  
+}
+```
+
+Пропишем очистку базы, накатим миграцию и вызываем seed - php artisan migrate:fresh --seed
