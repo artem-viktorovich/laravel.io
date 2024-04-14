@@ -3090,3 +3090,120 @@ class DatabaseSeeder extends Seeder
 ```
 
 Пропишем очистку базы, накатим миграцию и вызываем seed - php artisan migrate:fresh --seed
+
+<h2>Пагинация в Laravel</h2>
+
+Создадим 100 постов
+
+```
+class DatabaseSeeder extends Seeder  
+{  
+    /**  
+     * Seed the application's database.     */    public function run(): void  
+    {  
+        Category::factory(100)->create();  - 100 категорий
+        $tags = Tag::factory(100)->create(); - 100 тегов
+        $posts = Post::factory(100)->create(); - 100 постов 
+  
+        foreach ($posts as $post) {  
+            $tagsIds = $tags->random(5)->pluck('id');  
+            $post->tags()->attach($tagsIds);  
+        }  
+    }  
+}
+```
+
+Для этого заходим в главный файл сайта IndexController и прописываем пагинацию показывая 10 постов
+
+```
+class IndexController extends BaseController  
+{  
+    public function __invoke()  
+    {  
+        $posts = Post::paginate(10);  
+        return view('post.index', compact('posts'));  
+    }  
+  
+}
+```
+
+Теперь нужно прописать ссылки для пролистывания пагинации
+
+посмотрим что нам выводится в постах
+
+```
+class IndexController extends BaseController  
+{  
+    public function __invoke()  
+    {  
+        $posts = Post::paginate(10);  
+        dd($posts);  
+        return view('post.index', compact('posts'));  
+    }  
+  
+}
+```
+
+Результат запроса:
+```
+Illuminate\Pagination\LengthAwarePaginator {#1101 ▼ // app\Http\Controllers\Post\IndexController.php:14
+  #items: Illuminate\Database\Eloquent\Collection {#1389 ▶}
+  #perPage: 10
+  #currentPage: 1
+  #path: "http://project/posts"
+  #query: []
+  #fragment: null
+  #pageName: "page"
+  +onEachSide: 3
+  #options: array:2 [▶]
+  #total: 100
+  #lastPage: 10
+}
+```
+
+
+Перейдём в файл - index.blade.php и пропишем ссылки
+
+```
+@extends('layouts.main')  
+@section('content')  
+    <div>  
+        <a class="btn btn-primary mb-3" href="{{route('post.create')}}">Создать пост</a>  
+    </div>    <div>        @foreach($posts as $post)  
+            <div><a href="{{route('post.show', $post->id)}}">{{$post->id}}. {{$post->title}}</a></div>  
+        @endforeach  
+    </div>  
+    <div>        {{$posts->links()}}  
+    </div>  
+@endsection
+```
+
+Пагинация подгрузилась с разметкой tailwind, но так как всё сломано, то можно настроить подключение шаблонов
+ Для этого пропишем команду - <strong>php artisan vendor:publish --tag=laravel-pagination</strong>
+ Должна в консоли появится информация о выполненной задачи 
+
+```
+  Copying directory [D:\OSPanel\domains\example_app\vendor\laravel\framework\src\Illuminate\Pagination\resources\views] to [D:\OSPanel\domains\example_app\resources\views\vendor\pagination]
+  DONE
+```
+
+Далее перейдём к  <a href="https://laravel.com/docs/10.x/pagination#customizing-the-pagination-view">инструкции</a> изменения пагинации
+
+Откроем файл App/Providers/AppServicesProvider находим boot и вставляем код, для подключения нужной пагинации с указанием пути чтения
+
+```
+class AppServiceProvider extends ServiceProvider  
+{  
+    /**  
+     * Register any application services.     */    public function register(): void  
+    {  
+        //  
+    }  
+  
+    /**  
+     * Bootstrap any application services.     */    public function boot(): void  
+    {  
+        Paginator::defaultView('vendor.pagination.bootstrap-4');  - подгрузка нужных стилей пагинации
+    }  
+}
+```
