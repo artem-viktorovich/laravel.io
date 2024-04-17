@@ -3207,3 +3207,97 @@ class AppServiceProvider extends ServiceProvider
     }  
 }
 ```
+
+<h2>Шаблон Filter, фильтрация данных</h2>
+```
+class IndexController extends BaseController  
+{  
+    public function __invoke()  
+    {  
+        $posts = Post::where('is_published', 1)->get();  - это своего рода уже является фильтрацией
+	
+  
+//        $posts = Post::paginate(10);  
+//        return view('post.index', compact('posts'));  
+    }  
+  
+}
+```
+
+Но задача состоит в том, чтобы передать данные, которые пользователь хочет.
+
+Для фильтра нужно создать некий интерфейс, который может передать требуемые значения
+
+По директории app/Http/Requests/Post создаём FilterRequest.php
+
+Внесём в класс наши ключи
+
+```
+public function rules(): array  
+{  
+    return [  
+        'title' => 'required|string',  
+        'content' => 'required|string',  
+        'image' => 'string',  
+        'category_id' => '',  
+        'tags' => '',  
+    ];  
+}
+```
+
+Переходим в IndexController и опрокидываем фильтрация и пропишем вывод данных
+
+ ```
+class IndexController extends BaseController  
+{  
+    public function __invoke(Request $request)  
+    {  
+        dump($request->all());  
+$posts = Post::where('is_published', 1)->where('category_id', $request->get('category_id'))->get();  
+dd($posts);
+  
+//        $posts = Post::paginate(10);  
+//        return view('post.index', compact('posts'));  
+    }  
+  
+}
+```
+
+Таким методом вызывается нужный нам айдишник
+
+Делаем динамичный запрос
+
+```
+class IndexController extends BaseController  
+{  
+    public function __invoke(FilterRequest $request)  
+    {  
+  
+        $data = $request->validated();  
+        $query = Post::query();  
+  
+    }  
+  
+}
+```
+
+Сделаем проверку и запрос
+
+```
+class IndexController extends BaseController  
+{  
+    public function __invoke(Request $request)  
+    {  
+  
+  
+        $query = Post::query();  
+        if (!empty($request->get('category_id'))) {  
+            $query->where('category_id', $request->get('category_id'));  
+        }  
+        $posts = $query->get();  
+        dd($posts);  
+  
+    }  
+  
+}
+```
